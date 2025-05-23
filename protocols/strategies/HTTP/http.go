@@ -122,11 +122,16 @@ func buildHTTPResponse(servConf parser.BeelzebubServiceConfiguration, tr tracer.
 }
 
 func traceRequest(request *http.Request, tr tracer.Tracer, command parser.Command, HoneypotDescription string) {
-	bodyBytes, err := io.ReadAll(request.Body)
-	body := ""
-	if err == nil {
-		body = string(bodyBytes)
+	var body string
+	if request.Body != nil {
+		bodyBytes, err := io.ReadAll(request.Body)
+		if err == nil {
+			body = string(bodyBytes)
+		} else {
+			log.Warnf("Error reading request body in traceRequest: %v", err)
+		}
 	}
+
 	host, port, _ := net.SplitHostPort(request.RemoteAddr)
 
 	event := tracer.Event{
