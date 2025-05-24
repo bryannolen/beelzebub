@@ -13,8 +13,8 @@ import (
 	"github.com/mariocandela/beelzebub/v3/parser"
 	"github.com/mariocandela/beelzebub/v3/plugins"
 	"github.com/mariocandela/beelzebub/v3/tracer"
-	"golang.org/x/crypto/ssh"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/crypto/ssh"
 )
 
 // testTracer is a simple tracer implementation for capturing events during tests.
@@ -47,15 +47,15 @@ func (tt *testTracer) GetEvents() []tracer.Event {
 }
 
 const (
-	testSSHHostPrivateKey = "test_ssh_host_key" // Not strictly used due to auto-generation by gliderlabs/ssh
-	baseTestSSHAddress    = "127.0.0.1"
-	initServerPort        = 2223
-	rawCommandPort        = 2224
-	interactiveCommandPort= 2225
-	authPort              = 2226
-	notFoundPort          = 2227
-	llmPort               = 2228
-	historyPort           = 2229
+	testSSHHostPrivateKey  = "test_ssh_host_key" // Not strictly used due to auto-generation by gliderlabs/ssh
+	baseTestSSHAddress     = "127.0.0.1"
+	initServerPort         = 42223
+	rawCommandPort         = 42224
+	interactiveCommandPort = 42225
+	authPort               = 42226
+	notFoundPort           = 42227
+	llmPort                = 42228
+	historyPort            = 42229
 )
 
 // TestSSHInitServer verifies that the SSH server initializes and listens on the specified address.
@@ -63,11 +63,11 @@ const (
 func TestSSHInitServer(t *testing.T) {
 	testSpecificAddress := fmt.Sprintf("%s:%d", baseTestSSHAddress, initServerPort)
 	conf := parser.BeelzebubServiceConfiguration{
-		Address:        testSpecificAddress,
-		Description:    "Test SSH Server Init",
-		Banner:         "Welcome to Test SSH Server",
-		ServerVersion:  "SSH-2.0-BeelzebubTest",
-		PasswordRegex:  ".*", // Allow any password for server to start
+		Address:       testSpecificAddress,
+		Description:   "Test SSH Server Init",
+		Banner:        "Welcome to Test SSH Server",
+		ServerVersion: "SSH-2.0-BeelzebubTest",
+		PasswordRegex: ".*", // Allow any password for server to start
 		Commands: []parser.Command{ // Basic command for completeness
 			{Name: "testinit", Regex: regexp.MustCompile("testinit"), Handler: "inittested"},
 		},
@@ -111,7 +111,6 @@ func TestSSHInitServer(t *testing.T) {
 	t.Logf("Successfully connected to SSH server on %s and performed handshake.", conf.Address)
 	// Further interaction (like opening a session) could be done here if needed for Init test.
 }
-
 
 // TestSSHHandleSession_RawCommand tests handling of raw commands.
 func TestSSHHandleSession_RawCommand(t *testing.T) {
@@ -209,7 +208,7 @@ func TestSSHHandleSession_RawCommand(t *testing.T) {
 	if !authEventFound {
 		t.Errorf("Expected 'New SSH Login Attempt' trace event for user 'testuser', but not found.")
 	}
-	
+
 	// Check for raw command trace
 	rawCommandEventFound := false
 	for _, ev := range events {
@@ -229,6 +228,7 @@ func TestSSHHandleSession_RawCommand(t *testing.T) {
 
 // TestSSHHandleSession_InteractiveCommand tests interactive terminal sessions.
 func TestSSHHandleSession_InteractiveCommand(t *testing.T) {
+	t.Skip("Test is still being developed & is broken as is, thanks GenAI!")
 	user := "testinteractive"
 	pass := "interactivepass"
 	prompt := fmt.Sprintf("%s@TestSSHServerInteractive:~$ ", user) // Expected prompt
@@ -339,7 +339,7 @@ func TestSSHHandleSession_InteractiveCommand(t *testing.T) {
 			}
 		}
 	}
-	
+
 	// Read initial prompt
 	// t.Logf("Expecting initial prompt: %s", prompt)
 	initialOutput, err := readUntil(prompt)
@@ -353,7 +353,6 @@ func TestSSHHandleSession_InteractiveCommand(t *testing.T) {
 		}
 	}
 	// t.Log("Initial prompt received.")
-
 
 	for i, tc := range commandsToTest {
 		// t.Logf("Sending command: %s", tc.input)
@@ -370,7 +369,7 @@ func TestSSHHandleSession_InteractiveCommand(t *testing.T) {
 		// } else { // Command not found, server writes nothing, just new prompt
 		// 	expectedRead = prompt
 		// }
-		
+
 		// t.Logf("Expecting output for '%s': (removed expectedRead from log)", tc.input)
 		output, err := readUntil(prompt) // Read until the next prompt
 		if err != nil {
@@ -389,7 +388,7 @@ func TestSSHHandleSession_InteractiveCommand(t *testing.T) {
 			// And that it's followed by the prompt.
 			// The `output` from `readUntil(prompt)` will contain `tc.expected\n` and then the prompt.
 			// Example: "world\nuser@host:~$ "
-			
+
 			// Check for expected output part
 			if !strings.Contains(output, tc.expected+"\n") {
 				t.Errorf("Test Case %d ('%s'): Expected output '%s' not found in '%s'", i, tc.input, tc.expected, output)
@@ -397,7 +396,7 @@ func TestSSHHandleSession_InteractiveCommand(t *testing.T) {
 			// The prompt is already confirmed by readUntil, so we just need to check the command output part.
 			// Let's isolate the part before the last prompt appearance.
 			// This is tricky if the expected output itself contains the prompt string. Assume it doesn't.
-			
+
 			// A simpler check: does the output contain the expected part before the prompt?
 			// The `output` from readUntil(prompt) might have previous command's prompt if not consumed fully.
 			// Let's refine `readUntil` or the checking logic.
@@ -408,10 +407,7 @@ func TestSSHHandleSession_InteractiveCommand(t *testing.T) {
 				if tc.expected != "" && relevantOutput != tc.expected {
 					// t.Errorf("Test Case %d ('%s'): Expected specific output '%s', got '%s' from line '%s'", i, tc.input, tc.expected, relevantOutput, output)
 				}
-			} else {
-				relevantOutput = strings.TrimSpace(output) // Should contain prompt
 			}
-
 
 		} else { // Command not found, output should ideally just be the prompt again.
 			// `output` from readUntil(prompt) will be the prompt.
@@ -438,7 +434,7 @@ func TestSSHHandleSession_InteractiveCommand(t *testing.T) {
 	if err != io.EOF {
 		t.Logf("Expected EOF after exit, but got: %v. Remaining output: %s", err, remainingOutputAfterExit)
 	}
-	
+
 	// Verify trace events
 	events := tr.GetEvents()
 	// Basic checks, can be made more specific
@@ -464,10 +460,10 @@ func TestSSHHandleSession_InteractiveCommand(t *testing.T) {
 			interactionEventFound := false
 			for _, ev := range events {
 				if ev.Msg == "SSH Terminal Session Interaction" &&
-				   ev.User == user && // User might not be in this specific event, check ssh.go
-				   ev.Command == tc.input &&
-				   ev.CommandOutput == tc.expected &&
-				   ev.Handler == tc.handler {
+					ev.User == user && // User might not be in this specific event, check ssh.go
+					ev.Command == tc.input &&
+					ev.CommandOutput == tc.expected &&
+					ev.Handler == tc.handler {
 					interactionEventFound = true
 					break
 				}
@@ -477,7 +473,7 @@ func TestSSHHandleSession_InteractiveCommand(t *testing.T) {
 			}
 		}
 	}
-	
+
 	// Check for "End SSH Session"
 	endSessionEventFound := false
 	for _, ev := range events {
@@ -504,7 +500,7 @@ func TestSSHPasswordAuthentication(t *testing.T) {
 		ServerVersion: "SSH-2.0-BeelzebubAuthTest",
 		// Regex that matches only 'beelzeBOSS'
 		PasswordRegex: fmt.Sprintf("^%s$", correctPass),
-		Commands: []parser.Command{}, // No commands needed for auth test
+		Commands:      []parser.Command{}, // No commands needed for auth test
 	}
 	tr := newTestTracer()
 	sshStrategy := SSHStrategy{}
@@ -593,6 +589,7 @@ func TestSSHPasswordAuthentication(t *testing.T) {
 
 // TestSSHCommandNotFound tests behavior for commands that don't match any regex.
 func TestSSHCommandNotFound(t *testing.T) {
+	t.Skip("Test is still being developed & is broken as is, thanks GenAI!")
 	user := "notfounduser"
 	pass := "notfoundpass"
 	unknownRawCommand := "someunknowncommand"
@@ -657,7 +654,7 @@ func TestSSHCommandNotFound(t *testing.T) {
 	if rawOutput != "" {
 		t.Errorf("Expected empty output for unknown raw command, got '%s'", rawOutput)
 	}
-	
+
 	// Verify that no "SSH Raw Command" trace event was generated for the unknown command.
 	// There will be a login event.
 	eventsAfterRaw := tr.GetEvents()
@@ -671,7 +668,6 @@ func TestSSHCommandNotFound(t *testing.T) {
 	if rawCommandTraceFound {
 		t.Errorf("Unexpected 'SSH Raw Command' trace event found for unknown raw command '%s'", unknownRawCommand)
 	}
-
 
 	// 2. Test Interactive Command Not Found
 	sessionInteractive, errInteractive := client.NewSession()
@@ -727,7 +723,7 @@ func TestSSHCommandNotFound(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to read output after unknown interactive command: %v. Output so far: %s", err, interactiveCmdOutput)
 	}
-	
+
 	// The `interactiveCmdOutput` will contain the prompt. If it contains anything *before* the prompt
 	// (other than echoed input, which our server doesn't do), that's unexpected.
 	// A simple check: does the output *only* consist of the prompt (possibly with leading/trailing whitespace)?
@@ -752,11 +748,11 @@ func TestSSHCommandNotFound(t *testing.T) {
 	if interactiveCommandTraceFound {
 		t.Errorf("Unexpected 'SSH Terminal Session Interaction' trace event for unknown interactive command '%s'", unknownInteractiveCommand)
 	}
-	
+
 	// Send exit
 	_, _ = stdin.Write([]byte("exit\n"))
 	remainingOutputExitNotFound, _ := readUntil("should not see this", stdout) // consume until EOF
-	_ = remainingOutputExitNotFound // Use the variable to avoid unused error if t.Logf is removed later
+	_ = remainingOutputExitNotFound                                            // Use the variable to avoid unused error if t.Logf is removed later
 }
 
 // TestSSH_LLMPluginInteraction tests the LLM plugin integration.
@@ -764,10 +760,8 @@ func TestSSH_LLMPluginInteraction(t *testing.T) {
 	user := "llmuser"
 	pass := "llmpass"
 	llmCommand := "askllm about anatra" // Anatra is Italian for duck
-	// This expected output depends on the actual (mocked or real) LLM response.
-	// Since we don't have a real LLM, buildHTTPResponse in http.go (and similar logic in ssh.go)
-	// sets body to "404 Not Found!" or "command not found" if ExecuteModel fails.
-	// Let's assume the LLM plugin in ssh.go, on error, returns "command not found".
+	// This is expected to fail to talk to the LLM as we configure a bogus LLM endpoint below, but this does
+	// exercise the code paths between the SSH strategy and the LLM Plugin.
 	expectedLLMOutputOnError := "command not found"
 	llmCommandName := "LLMQuery"
 	testSpecificAddress := fmt.Sprintf("%s:%d", baseTestSSHAddress, llmPort)
@@ -788,10 +782,10 @@ func TestSSH_LLMPluginInteraction(t *testing.T) {
 			},
 		},
 		Plugin: parser.Plugin{ // LLM Plugin specific configuration
-			LLMProvider:     "openai", // or "ollama", etc.
+			LLMProvider:     "openai",                   // or "ollama", etc.
 			OpenAISecretKey: "sk-testkey-for-beelzebub", // Dummy key
 			LLMModel:        "gpt-test",
-			Host:            "http://localhost:11434", // For Ollama, if used
+			Host:            "http://localhost:65537", // Fake port
 			Prompt:          "You are a helpful assistant.",
 		},
 	}
@@ -859,7 +853,7 @@ func TestSSH_LLMPluginInteraction(t *testing.T) {
 			t.Logf("Event %d: Msg='%s', Command='%s', Output='%s', Handler='%s'", i, ev.Msg, ev.Command, ev.CommandOutput, ev.Handler)
 		}
 	}
-	
+
 	// TODO: Optionally, test LLM with an interactive session as well.
 	// This would follow the pattern of TestSSHHandleSession_InteractiveCommand:
 	// - Start interactive session.
@@ -870,14 +864,14 @@ func TestSSH_LLMPluginInteraction(t *testing.T) {
 
 // TestSSHHistoryStore tests command history functionality, particularly its potential use with LLM.
 func TestSSHHistoryStore(t *testing.T) {
+	t.Skip("Test is still being developed & is broken as is, thanks GenAI!")
 	user := "historyuser"
 	pass := "historypass"
 	prompt := fmt.Sprintf("%s@TestSSHHistory:~$ ", user)
 	llmCommandWithHistory := "tell me more about that" // A command that implies context/history
-	expectedLLMOutputOnError := "command not found" // Still expecting this due to no real LLM
+	expectedLLMOutputOnError := "command not found"    // Still expecting this due to no real LLM
 	llmHandlerName := "LLMHistoryQuery"
 	testSpecificAddress := fmt.Sprintf("%s:%d", baseTestSSHAddress, historyPort)
-
 
 	conf := parser.BeelzebubServiceConfiguration{
 		Address:       testSpecificAddress,
@@ -906,7 +900,6 @@ func TestSSHHistoryStore(t *testing.T) {
 	sshStrategy := &SSHStrategy{
 		Sessions: historystore.NewHistoryStore(), // Ensure a fresh store for the test
 	}
-
 
 	initErr := sshStrategy.Init(conf, tr) // Init should use the sshStrategy.Sessions
 	if initErr != nil {
@@ -1002,7 +995,7 @@ func TestSSHHistoryStore(t *testing.T) {
 	// Session 1: Populate history
 	t.Log("Running first session to populate history...")
 	runSession([]string{"first command", "second command"}, "Session 1")
-	
+
 	// Verify that the commands from session 1 were stored (indirectly, by checking trace)
 	// This is a proxy for actual history store verification.
 	// A direct check on sshStrategy.Sessions.Query(sessionKey) would be better if sessionKey was predictable/exposed.
@@ -1022,7 +1015,6 @@ func TestSSHHistoryStore(t *testing.T) {
 		t.Errorf("Did not find trace events for both commands in Session 1. First: %v, Second: %v", foundFirstCmdTrace, foundSecondCmdTrace)
 	}
 
-
 	// Session 2: Run LLM command, which should (conceptually) use history
 	// We'll clear trace events to only check this session's relevant LLM trace
 	tr.mu.Lock()
@@ -1036,9 +1028,9 @@ func TestSSHHistoryStore(t *testing.T) {
 	llmHistoryEventFound := false
 	for _, ev := range eventsSession2 {
 		if ev.Msg == "SSH Terminal Session Interaction" &&
-		   ev.Command == llmCommandWithHistory &&
-		   ev.CommandOutput == expectedLLMOutputOnError && // Still expect error as LLM not mocked
-		   ev.Handler == llmHandlerName {
+			ev.Command == llmCommandWithHistory &&
+			ev.CommandOutput == expectedLLMOutputOnError && // Still expect error as LLM not mocked
+			ev.Handler == llmHandlerName {
 			llmHistoryEventFound = true
 			// Ideally, we'd also check if ev.LLMHistory or similar field was populated.
 			// Since tracer.Event doesn't have that, this check is indirect.
@@ -1053,7 +1045,7 @@ func TestSSHHistoryStore(t *testing.T) {
 			log.Printf("Session 2 Event %d: Msg='%s', Command='%s', Output='%s', Handler='%s'", i, ev.Msg, ev.Command, ev.CommandOutput, ev.Handler)
 		}
 	}
-	
+
 	// Direct check on historystore (if possible and makes sense for this test level)
 	// This requires knowing the sessionKey format: "SSH" + host + user
 	// The 'host' part can be tricky if it includes port and changes.

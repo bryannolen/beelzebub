@@ -47,8 +47,8 @@ func (tt *testTracer) GetEvents() []tracer.Event {
 
 const (
 	baseTestTCPAddress = "127.0.0.1"
-	initTCPPort        = 3306 
-	handlerTCPPort     = 3307
+	initTCPPort        = 43306
+	handlerTCPPort     = 43307
 )
 
 // TestTCPInitServer verifies that the TCP server initializes and listens on the specified address.
@@ -58,7 +58,7 @@ func TestTCPInitServer(t *testing.T) {
 		Address:     testSpecificAddress,
 		Description: "Test TCP Server Init",
 		Banner:      "Welcome to Test TCP Server\n",
-		Commands: []parser.Command{ 
+		Commands: []parser.Command{
 			{Name: "testinit", Regex: regexp.MustCompile("testinit"), Handler: "inittested"},
 		},
 	}
@@ -99,7 +99,7 @@ func TestTCPConnectionHandling(t *testing.T) {
 	if err != nil {
 		t.Fatalf("TCPStrategy Init for ConnectionHandling test failed: %v", err)
 	}
-	time.Sleep(100 * time.Millisecond) 
+	time.Sleep(100 * time.Millisecond)
 
 	conn, err := net.DialTimeout("tcp", testSpecificAddress, 2*time.Second)
 	if err != nil {
@@ -107,9 +107,9 @@ func TestTCPConnectionHandling(t *testing.T) {
 	}
 	defer conn.Close()
 
-	conn.SetReadDeadline(time.Now().Add(2 * time.Second)) 
+	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 	reader := bufio.NewReader(conn)
-	receivedBanner, err := reader.ReadString('\n') 
+	receivedBanner, err := reader.ReadString('\n')
 	if err != nil {
 		t.Fatalf("Failed to read banner: %v", err)
 	}
@@ -122,7 +122,7 @@ func TestTCPConnectionHandling(t *testing.T) {
 		t.Fatalf("Failed to write command to server: %v", err)
 	}
 
-	conn.SetReadDeadline(time.Now().Add(2 * time.Second)) 
+	conn.SetReadDeadline(time.Now().Add(2 * time.Second))
 	dataReadAfterCommand, errAfterCmd := reader.ReadString('\n')
 	if errAfterCmd != io.EOF {
 		t.Logf("Read after command returned error (expected EOF): %v", errAfterCmd)
@@ -164,9 +164,15 @@ func TestTCPConnectionHandling(t *testing.T) {
 		if startEvent.Description != conf.Description {
 			t.Errorf("Start Event: Expected description '%s', got '%s'", conf.Description, startEvent.Description)
 		}
-		if startEvent.ID == "" {t.Errorf("Start Event: Expected non-empty ID")}
-		if startEvent.SourceIp == "" {t.Errorf("Start Event: Expected non-empty SourceIp")}
-		if startEvent.SourcePort == "" {t.Errorf("Start Event: Expected non-empty SourcePort")}
+		if startEvent.ID == "" {
+			t.Errorf("Start Event: Expected non-empty ID")
+		}
+		if startEvent.SourceIp == "" {
+			t.Errorf("Start Event: Expected non-empty SourceIp")
+		}
+		if startEvent.SourcePort == "" {
+			t.Errorf("Start Event: Expected non-empty SourcePort")
+		}
 	} else if len(events) > 0 { // Log if events exist but this specific one wasn't found
 		t.Logf("Info: 'New TCP Connection' (Start) trace event not found among captured events.")
 	}
@@ -185,18 +191,23 @@ func TestTCPConnectionHandling(t *testing.T) {
 		if endEvent.Description != conf.Description {
 			t.Errorf("End Event: Expected description '%s', got '%s'", conf.Description, endEvent.Description)
 		}
-		if endEvent.ID == "" {t.Errorf("End Event: Expected non-empty ID")}
+		if endEvent.ID == "" {
+			t.Errorf("End Event: Expected non-empty ID")
+		}
 		if startEvent != nil && endEvent.ID != startEvent.ID { // Check ID consistency only if startEvent exists
 			t.Errorf("End Event: ID '%s' should match Start Event ID '%s'", endEvent.ID, startEvent.ID)
 		} else if startEvent == nil && endEvent.ID == "" { // If start event is missing, just ensure end event has an ID
 			t.Logf("Info: Start event missing, cannot compare End Event ID for consistency, but End Event ID is '%s'.", endEvent.ID)
 		}
-		if endEvent.SourceIp == "" {t.Errorf("End Event: Expected non-empty SourceIp")}
-		if endEvent.SourcePort == "" {t.Errorf("End Event: Expected non-empty SourcePort")}
+		if endEvent.SourceIp == "" {
+			t.Errorf("End Event: Expected non-empty SourceIp")
+		}
+		if endEvent.SourcePort == "" {
+			t.Errorf("End Event: Expected non-empty SourcePort")
+		}
 	} else if len(events) > 0 { // Log if events exist but this specific one wasn't found
 		t.Logf("Info: 'End TCP Connection' (End) trace event not found among captured events.")
 	}
-
 
 	// Log all events for debugging if any test assertion failed and events were captured
 	if t.Failed() && len(events) > 0 {

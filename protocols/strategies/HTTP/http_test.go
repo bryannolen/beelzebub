@@ -50,7 +50,7 @@ func (tt *testTracer) GetEvents() []tracer.Event {
 // TestInitServer verifies that the HTTP server initializes and listens on the specified address.
 func TestInitServer(t *testing.T) {
 	conf := parser.BeelzebubServiceConfiguration{
-		Address:     "127.0.0.1:8080",
+		Address:     "127.0.0.1:48080",
 		Description: "Test HTTP Server",
 		Commands:    []parser.Command{},
 	}
@@ -102,7 +102,7 @@ func newTestRequest(method, path string, body io.Reader) (*http.Request, *httpte
 	// http.NewRequest typically sets URL.Path but might leave RequestURI empty for client requests.
 	if req.URL != nil {
 		req.RequestURI = req.URL.RequestURI() // This will usually be just URL.Path if host is not set
-		if req.RequestURI == "" { // Fallback if RequestURI() is empty (e.g. no host in URL)
+		if req.RequestURI == "" {             // Fallback if RequestURI() is empty (e.g. no host in URL)
 			req.RequestURI = req.URL.Path
 		}
 	}
@@ -114,10 +114,10 @@ func TestHandleRequestMatchingCommand(t *testing.T) {
 	conf := parser.BeelzebubServiceConfiguration{
 		Commands: []parser.Command{
 			{
-				Name:    "TestCommand",
-				Regex:   regexp.MustCompile("^/testpath$"), // Restored original regex
-				Handler: "Hello from TestCommand",
-				Headers: []string{"X-Test-Header:TestValue"},
+				Name:       "TestCommand",
+				Regex:      regexp.MustCompile("^/testpath$"), // Restored original regex
+				Handler:    "Hello from TestCommand",
+				Headers:    []string{"X-Test-Header:TestValue"},
 				StatusCode: http.StatusOK,
 			},
 		},
@@ -186,9 +186,9 @@ func TestHandleRequestMatchingCommand(t *testing.T) {
 func TestHandleRequestFallbackCommand(t *testing.T) {
 	conf := parser.BeelzebubServiceConfiguration{
 		FallbackCommand: parser.Command{
-			Name:    "FallbackCommand",
-			Handler: "Hello from FallbackCommand",
-			Headers: []string{"X-Fallback-Header:FallbackValue"},
+			Name:       "FallbackCommand",
+			Handler:    "Hello from FallbackCommand",
+			Headers:    []string{"X-Fallback-Header:FallbackValue"},
 			StatusCode: http.StatusAccepted,
 		},
 		Commands: []parser.Command{}, // No regular commands
@@ -271,8 +271,8 @@ func TestHandleRequestNoMatchingCommand(t *testing.T) {
 			command := conf.FallbackCommand // This will be an empty command
 			if command.Handler != "" || command.Plugin != "" {
 				var err error // Declare err here
-				resp, err = buildHTTPResponse(conf, tr, command, request) 
-				if err != nil { 
+				resp, err = buildHTTPResponse(conf, tr, command, request)
+				if err != nil {
 					log.Errorf("error building http response: %s: %v", request.RequestURI, err)
 					resp.StatusCode = 500
 					resp.Body = "500 Internal Server Error"
@@ -342,9 +342,9 @@ func TestBuildHTTPResponseWithLLMPlugin(t *testing.T) {
 		},
 	}
 	cmd := parser.Command{
-		Name:   "LLMTestCommand",
-		Plugin: plugins.LLMPluginName, // Assuming plugins.LLMPluginName is "llm"
-		Regex:  regexp.MustCompile("^/llm$"),
+		Name:       "LLMTestCommand",
+		Plugin:     plugins.LLMPluginName, // Assuming plugins.LLMPluginName is "llm"
+		Regex:      regexp.MustCompile("^/llm$"),
 		StatusCode: http.StatusOK,
 	}
 	tr := newTestTracer() // Using the test tracer
@@ -377,7 +377,7 @@ func TestBuildHTTPResponseWithLLMPlugin(t *testing.T) {
 	} else {
 		t.Logf("BuildHTTPResponse returned error: %v (this might be expected if LLM execution failed as it's not mocked)", err)
 	}
-	
+
 	// Given the current implementation, an error during LLM execution (which is likely in a test environment)
 	// results in "404 Not Found!" body.
 	// If `plugins.FromStringToLLMProvider` fails, it also results in "404 Not Found!"
@@ -402,7 +402,6 @@ func TestBuildHTTPResponseWithLLMPlugin(t *testing.T) {
 		t.Logf("LLM plugin path taken, and it resulted in '404 Not Found!' body, likely due to execution error in test (which is expected).")
 	}
 
-
 	events := tr.GetEvents()
 	if len(events) != 1 {
 		t.Fatalf("Expected 1 trace event for LLM command, got %d", len(events))
@@ -416,11 +415,11 @@ func TestBuildHTTPResponseWithLLMPlugin(t *testing.T) {
 // TestInitServerTLS verifies that the HTTP server initializes with TLS and listens on the specified address.
 func TestInitServerTLS(t *testing.T) {
 	conf := parser.BeelzebubServiceConfiguration{
-		Address:     "127.0.0.1:8443", // Different port for TLS test
+		Address:     "127.0.0.1:48443", // Different port for TLS test
 		Description: "Test HTTPS Server",
 		Commands:    []parser.Command{},
-		TLSCertPath: "/app/server.crt", // Using absolute paths
-		TLSKeyPath:  "/app/server.key",  // Using absolute paths
+		TLSCertPath: "testdata/server.crt",
+		TLSKeyPath:  "testdata/server.key",
 	}
 	tr := newTestTracer() // Using the test tracer
 
