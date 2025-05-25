@@ -53,7 +53,7 @@ const (
 
 // TestTCPInitServer verifies that the TCP server initializes and listens on the specified address.
 func TestTCPInitServer(t *testing.T) {
-	testSpecificAddress := fmt.Sprintf("%s:%d", baseTestTCPAddress, initTCPPort)
+	testSpecificAddress := fmt.Sprintf("[%s]:%d", baseTestTCPAddress, initTCPPort)
 	conf := parser.BeelzebubServiceConfiguration{
 		Address:     testSpecificAddress,
 		Description: "Test TCP Server Init",
@@ -81,7 +81,7 @@ func TestTCPInitServer(t *testing.T) {
 
 // TestTCPConnectionHandling tests banner sending, command reading, and connection closing.
 func TestTCPConnectionHandling(t *testing.T) {
-	testSpecificAddress := fmt.Sprintf("%s:%d", baseTestTCPAddress, handlerTCPPort)
+	testSpecificAddress := fmt.Sprintf("[%s]:%d", baseTestTCPAddress, handlerTCPPort)
 	banner := "Hello from Beelzebub TCP!\n"
 	clientCommand := "PING"
 
