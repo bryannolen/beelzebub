@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/mariocandela/beelzebub/v3/limiter"
 	"github.com/mariocandela/beelzebub/v3/parser"
 	"github.com/mariocandela/beelzebub/v3/plugins"
 	"github.com/mariocandela/beelzebub/v3/tracer"
@@ -24,12 +25,21 @@ type httpResponse struct {
 }
 
 func (httpStrategy HTTPStrategy) Init(servConf parser.BeelzebubServiceConfiguration, tr tracer.Tracer) error {
-	serverMux := http.NewServeMux()
+	rateLimiter := limiter.NewRateLimiter(servConf.RequestsPerSecondLimit)
 
+	serverMux := http.NewServeMux()
 	serverMux.HandleFunc("/", func(responseWriter http.ResponseWriter, request *http.Request) {
 		var matched bool
 		var resp httpResponse
 		var err error
+
+		reqHost, _, _ := net.SplitHostPort(request.RemoteAddr)
+		if !rateLimiter.Allowed(reqHost) {
+			resp.StatusCode = 429
+			resp.Body = "429 Too Many Requests"
+			goto SENDRESPONSE
+		}
+
 		for _, command := range servConf.Commands {
 			var err error
 			matched = command.Regex.MatchString(request.RequestURI)
@@ -40,7 +50,7 @@ func (httpStrategy HTTPStrategy) Init(servConf parser.BeelzebubServiceConfigurat
 					resp.StatusCode = 500
 					resp.Body = "500 Internal Server Error"
 				}
-				break
+				goto SENDRESPONSE
 			}
 		}
 		// If none of the main commands matched, and we have a fallback command configured, process it here.
@@ -56,6 +66,7 @@ func (httpStrategy HTTPStrategy) Init(servConf parser.BeelzebubServiceConfigurat
 				}
 			}
 		}
+	SENDRESPONSE:
 		setResponseHeaders(responseWriter, resp.Headers, resp.StatusCode)
 		fmt.Fprint(responseWriter, resp.Body)
 

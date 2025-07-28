@@ -75,6 +75,7 @@ type BeelzebubServiceConfiguration struct {
 	TLSCertPath            string    `yaml:"tlsCertPath"`
 	TLSKeyPath             string    `yaml:"tlsKeyPath"`
 	EnableCacheReplay      bool      `yaml:"enableCacheReplay"`
+	RequestsPerSecondLimit int       `yaml:"requestsPerSecondLimit"` // Default = 0 = unlimited.
 }
 
 // Command is the struct that contains the configurations of the commands

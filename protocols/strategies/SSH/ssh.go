@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/mariocandela/beelzebub/v3/historystore"
+	"github.com/mariocandela/beelzebub/v3/limiter"
 	"github.com/mariocandela/beelzebub/v3/parser"
 	"github.com/mariocandela/beelzebub/v3/plugins"
 	"github.com/mariocandela/beelzebub/v3/tracer"
@@ -19,13 +20,18 @@ import (
 )
 
 type SSHStrategy struct {
-	Sessions *historystore.HistoryStore
+	Sessions    *historystore.HistoryStore
+	RateLimiter *limiter.RateLimiter
 }
 
 func (sshStrategy *SSHStrategy) Init(servConf parser.BeelzebubServiceConfiguration, tr tracer.Tracer) error {
 	if sshStrategy.Sessions == nil {
 		sshStrategy.Sessions = historystore.NewHistoryStore()
 	}
+	if sshStrategy.RateLimiter == nil {
+		sshStrategy.RateLimiter = limiter.NewRateLimiter(servConf.RequestsPerSecondLimit)
+	}
+
 	go sshStrategy.Sessions.HistoryCleaner()
 	go func() {
 		server := &ssh.Server{
@@ -41,6 +47,13 @@ func (sshStrategy *SSHStrategy) Init(servConf parser.BeelzebubServiceConfigurati
 
 				// Inline SSH command
 				if sess.RawCommand() != "" {
+					// If we have had too many requests for this IP+User combo, and its not an interactive session, drop.
+					// TODO: Log the attempt?
+					if !sshStrategy.RateLimiter.Allowed(sessionKey) {
+						sess.Write([]byte("Command Rejected: Too Many Requests\n"))
+						return
+					}
+
 					var histories []plugins.Message
 					inMsg := plugins.Message{Role: plugins.USER.String(), Content: sess.RawCommand()}
 					commandOutput := "command not found"
