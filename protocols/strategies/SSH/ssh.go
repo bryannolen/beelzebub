@@ -44,13 +44,14 @@ func (sshStrategy *SSHStrategy) Init(servConf parser.BeelzebubServiceConfigurati
 
 				host, port, _ := net.SplitHostPort(sess.RemoteAddr().String())
 				sessionKey := "SSH" + host + sess.User()
+				rateKey := "SSH:" + host
 
 				// Inline SSH command
 				if sess.RawCommand() != "" {
 					// If we have had too many requests for this IP+User combo, and its not an interactive session, drop.
-					if !sshStrategy.RateLimiter.Allowed(sessionKey) {
+					if !sshStrategy.RateLimiter.Allowed(rateKey) {
 						sess.Write([]byte("Command Rejected: Too Many Requests\n"))
-						log.Infof("SSH Raw Command Ratelimited: %s: %q", sessionKey, sess.RawCommand())
+						log.Infof("SSH Raw Command Ratelimited: %s: %q", rateKey, sess.RawCommand())
 						return
 					}
 
