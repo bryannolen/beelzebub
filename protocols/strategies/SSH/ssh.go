@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/mariocandela/beelzebub/v3/plugins"
 	"github.com/mariocandela/beelzebub/v3/tracer"
 
+	"github.com/bryannolen/dnsbl/spamhaus"
 	"github.com/gliderlabs/ssh"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -20,6 +22,32 @@ import (
 
 type SSHStrategy struct {
 	Sessions *historystore.HistoryStore
+}
+
+// shouldRespond checks the supplued sourceAddress against the Spamhaus ZEN DROP DNSBL using the configured DNS resolver.
+// It will return false (do not respond) if the supplied source address is present in the spamhaus Zen DROP DNSBL.
+// It will return true (okay to respond):
+// * if there is no configured resolver (default), or
+// * if there was an error making the query (fail open), or
+// * if the sourceAddress is not on the DROP list.
+func shouldRespond(sourceAddress, resolverAddress string) (bool, error) {
+	if resolverAddress == "" {
+		// Unconfigured resolver, so assume success.
+		return true, nil
+	}
+	if sourceAddress == "" {
+		// Fail open - this case should never happen but just in case.
+		return true, fmt.Errorf("sourceAddress is empty")
+	}
+	res, err := spamhaus.QueryByIP(sourceAddress, resolverAddress)
+	if err != nil {
+		// Fail open.
+		return true, err
+	}
+	if slices.Contains(res, "DROP") {
+		return false, nil
+	}
+	return true, nil
 }
 
 func (sshStrategy *SSHStrategy) Init(servConf parser.BeelzebubServiceConfiguration, tr tracer.Tracer) error {
@@ -38,6 +66,18 @@ func (sshStrategy *SSHStrategy) Init(servConf parser.BeelzebubServiceConfigurati
 
 				host, port, _ := net.SplitHostPort(sess.RemoteAddr().String())
 				sessionKey := "SSH" + host + sess.User()
+
+				// Check the remote address (host) against the DNS Block List (if configured).
+				if servConf.ResolverAddress != "" {
+					if canProceed, err := shouldRespond(host, servConf.ResolverAddress); err != nil {
+						// Log the error, but continue processing the connection.
+						log.Errorf("error checking against DNSBL: %v", err)
+					} else if !canProceed {
+						// Drop the connection (early return).
+						log.Infof("ignoring connection from %q due to DNSBL match", host)
+						return
+					}
+				}
 
 				// Inline SSH command
 				if sess.RawCommand() != "" {

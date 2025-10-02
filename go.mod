@@ -1,10 +1,9 @@
 module github.com/mariocandela/beelzebub/v3
 
-go 1.24.0
-
-toolchain go1.24.1
+go 1.24.1
 
 require (
+	github.com/bryannolen/dnsbl v0.0.0-20251002043034-e86c0b53772b
 	github.com/gliderlabs/ssh v0.3.8
 	github.com/go-resty/resty/v2 v2.16.5
 	github.com/google/uuid v1.6.0
