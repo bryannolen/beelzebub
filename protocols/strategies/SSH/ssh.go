@@ -61,12 +61,8 @@ func (sshStrategy *SSHStrategy) Init(servConf parser.BeelzebubServiceConfigurati
 			MaxTimeout:  time.Duration(servConf.DeadlineTimeoutSeconds) * time.Second,
 			IdleTimeout: time.Duration(servConf.DeadlineTimeoutSeconds) * time.Second,
 			Version:     servConf.ServerVersion,
-			Handler: func(sess ssh.Session) {
-				uuidSession := uuid.New()
-
+			SessionRequestCallback: func(sess ssh.Session, requestType string) bool {
 				host, port, _ := net.SplitHostPort(sess.RemoteAddr().String())
-				sessionKey := "SSH" + host + sess.User()
-
 				// Check the remote address (host) against the DNS Block List (if configured).
 				if servConf.ResolverAddress != "" {
 					if canProceed, err := shouldRespond(host, servConf.ResolverAddress); err != nil {
@@ -74,10 +70,26 @@ func (sshStrategy *SSHStrategy) Init(servConf parser.BeelzebubServiceConfigurati
 						log.Errorf("error checking against DNSBL: %v", err)
 					} else if !canProceed {
 						// Drop the connection (early return).
-						log.Infof("ignoring connection from %q due to DNSBL match", host)
-						return
+						tr.TraceEvent(tracer.Event{
+							Msg:         "Connection Attempt Rejected (Source Address in DNSBL)",
+							Protocol:    tracer.SSH.String(),
+							Status:      tracer.Stateless.String(),
+							RemoteAddr:  sess.RemoteAddr().String(),
+							SourceIp:    host,
+							SourcePort:  port,
+							ID:          uuid.New().String(),
+							Description: servConf.Description,
+						})
+						return false
 					}
 				}
+				return true
+			},
+			Handler: func(sess ssh.Session) {
+				uuidSession := uuid.New()
+
+				host, port, _ := net.SplitHostPort(sess.RemoteAddr().String())
+				sessionKey := "SSH" + host + sess.User()
 
 				// Inline SSH command
 				if sess.RawCommand() != "" {
