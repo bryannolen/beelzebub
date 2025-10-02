@@ -24,8 +24,8 @@ type SSHStrategy struct {
 	Sessions *historystore.HistoryStore
 }
 
-// shouldRespond checks the supplued sourceAddress against the Spamhaus ZEN DROP DNSBL using the configured DNS resolver.
-// It will return false (do not respond) if the supplied source address is present in the spamhaus Zen DROP DNSBL.
+// shouldRespond checks the supplied sourceAddress against the Spamhaus ZEN DROP DNSBL using the supplied DNS resolver.
+// It will return false (do not respond) if the supplied source address is present in the Spamhaus Zen DROP DNSBL.
 // It will return true (okay to respond):
 // * if there is no configured resolver (default), or
 // * if there was an error making the query (fail open), or
@@ -70,7 +70,7 @@ func (sshStrategy *SSHStrategy) Init(servConf parser.BeelzebubServiceConfigurati
 				// Check the remote address (host) against the DNS Block List (if configured).
 				if servConf.ResolverAddress != "" {
 					if canProceed, err := shouldRespond(host, servConf.ResolverAddress); err != nil {
-						// Log the error, but continue processing the connection.
+						// Log the error and continue processing the connection.
 						log.Errorf("error checking against DNSBL: %v", err)
 					} else if !canProceed {
 						// Drop the connection (early return).
