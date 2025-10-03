@@ -69,9 +69,10 @@ func (sshStrategy *SSHStrategy) Init(servConf parser.BeelzebubServiceConfigurati
 						// Log the error and continue processing the connection.
 						log.Errorf("error checking against DNSBL: %v", err)
 					} else if !canProceed {
+						log.Debugf("Session Rejected (Source Address in DNSBL): %q", host)
 						// Drop the connection (early return).
 						tr.TraceEvent(tracer.Event{
-							Msg:         "Connection Attempt Rejected (Source Address in DNSBL)",
+							Msg:         "Session Attempt Rejected (Source Address in DNSBL)",
 							Protocol:    tracer.SSH.String(),
 							Status:      tracer.Stateless.String(),
 							RemoteAddr:  sess.RemoteAddr().String(),
