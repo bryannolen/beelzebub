@@ -74,6 +74,7 @@ type BeelzebubServiceConfiguration struct {
 	Plugin                 Plugin    `yaml:"plugin"`
 	TLSCertPath            string    `yaml:"tlsCertPath"`
 	TLSKeyPath             string    `yaml:"tlsKeyPath"`
+	ResolverAddress        string    `yaml:"resolverAddress"`
 	EnableCacheReplay      bool      `yaml:"enableCacheReplay"`
 	RequestsPerSecondLimit int       `yaml:"requestsPerSecondLimit"` // Default = 0 = unlimited.
 }

@@ -52,6 +52,7 @@ protocol: "http"
 address: ":8080"
 tlsCertPath: "/tmp/cert.crt"
 tlsKeyPath: "/tmp/cert.key"
+resolverAddress: "8.8.8.8:53"
 tools:
   - name: "tool:user-account-manager"
     description: "Tool for querying and modifying user account details. Requires administrator privileges."
@@ -165,6 +166,7 @@ func TestReadConfigurationsServicesValid(t *testing.T) {
 	assert.Equal(t, firstBeelzebubServiceConfiguration.TLSKeyPath, "/tmp/cert.key")
 	assert.Equal(t, firstBeelzebubServiceConfiguration.EnableCacheReplay, false)
 	assert.Equal(t, firstBeelzebubServiceConfiguration.RequestsPerSecondLimit, 0)
+	assert.Equal(t, firstBeelzebubServiceConfiguration.ResolverAddress, "8.8.8.8:53")
 	assert.Equal(t, len(firstBeelzebubServiceConfiguration.Tools), 1)
 	assert.Equal(t, firstBeelzebubServiceConfiguration.Tools[0].Name, "tool:user-account-manager")
 	assert.Equal(t, firstBeelzebubServiceConfiguration.Tools[0].Description, "Tool for querying and modifying user account details. Requires administrator privileges.")
